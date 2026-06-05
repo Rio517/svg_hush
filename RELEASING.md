@@ -133,7 +133,7 @@ tarballs (`tar -tzvf` one to confirm).
 After every release asset exists on the GitHub Release:
 
 ```
-mix rustler_precompiled.download Elixir.SvgSanitizer.Native --all --print
+mix rustler_precompiled.download SvgSanitizer.Native --all --print
 ```
 
 This downloads every `.tar.gz` from the GitHub Release, computes SHA256, and writes `checksum-Elixir.SvgSanitizer.Native.exs`. `--all` includes every NIF/triple in the precompiled-targets matrix. `--print` echoes to stdout so you can sanity-check before committing.
@@ -229,7 +229,7 @@ git -C /Users/marioflores/code/svg_hush push origin vX.Y.Z
 gh run watch --repo Rio517/svg_sanitizer --exit-status
 
 # 4. Generate + commit checksum
-mix rustler_precompiled.download Elixir.SvgSanitizer.Native --all --print
+mix rustler_precompiled.download SvgSanitizer.Native --all --print
 git -C /Users/marioflores/code/svg_hush add checksum-Elixir.SvgSanitizer.Native.exs
 git -C /Users/marioflores/code/svg_hush commit -m "chore: checksum file for vX.Y.Z"
 git -C /Users/marioflores/code/svg_hush push origin main
