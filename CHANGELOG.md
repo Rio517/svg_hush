@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.2.0 (2026-06-05)
+
+- Precompiled artifact added for `aarch64-apple-darwin` (Apple Silicon
+  Macs). M-series dev machines now pull a prebuilt NIF — no
+  `SVG_SANITIZER_BUILD=1` and no local Rust toolchain required.
+- Intel Macs (`x86_64-apple-darwin`) remain source-only for now; those
+  devs still set `SVG_SANITIZER_BUILD=1`.
+- No changes to the NIF behavior or the `svg-hush` version; this is a
+  packaging-only release.
+
 ## v0.1.0 (2026-05-28)
 
 Initial release. Thin precompiled NIF wrapping Cloudflare's `svg-hush`

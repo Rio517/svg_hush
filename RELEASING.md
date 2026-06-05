@@ -42,7 +42,7 @@ These match the precompilation guide unless noted. Don't change them without re-
 | `Cargo.lock` committed to git | Yes (`native/svg_sanitizer_nif/Cargo.lock`) | Locks transitive crate versions so source-fallback users get reproducible builds. Required on disk when running `mix hex.publish` because the `files:` manifest references it — building from a tree without it aborts with `Missing files`. |
 | `checksum-Elixir.SvgSanitizer.Native.exs` in git | Currently committed; **the guide says "you don't need to track the checksum file in your version control system (git or other)"**. Acceptable deviation — the file gets regenerated per release anyway. To bring into strict compliance: `git rm` it, add `checksum-*.exs` to `.gitignore`. The file still must exist on disk at `mix hex.publish` time (the `files:` glob ships it in the Hex tarball). | Deviation is cosmetic. Either is correct. |
 | Force-build env var | `SVG_SANITIZER_BUILD` (set to `1` or `true`) | Matches the guide's `<APP_NAME>_BUILD` convention. |
-| Target platforms (v0.1.x) | Linux only: `nif-2.17-{aarch64,x86_64}-unknown-linux-gnu` | macOS precompilation blocked by `rustler-precompiled-action@v1.1.5` unconditionally installing `cross` (fails on Apple Silicon, queues forever on `macos-13` Intel). Revisit in v0.2.x. Mac dev users force-build locally. |
+| Target platforms (v0.2.x) | Linux `nif-2.17-{aarch64,x86_64}-unknown-linux-gnu` (CI) + `nif-2.17-aarch64-apple-darwin` (built on a Mac, uploaded by hand — see step 3.5) | CI can't build the macOS artifact: `rustler-precompiled-action@v1.1.5` unconditionally installs `cross`, which fails on macOS runners. Apple Silicon is built on a maintainer's Mac and attached to the Release. Intel Macs (`x86_64-apple-darwin`) stay source-only — those devs force-build with `SVG_SANITIZER_BUILD=1`. |
 | NIF version range | NIF 2.17 only (OTP 27+) | Scoped narrow in v0.1 to side-step a `rustler` feature-flag conflict. Widen in a future bump if needed. |
 
 ---
@@ -95,12 +95,38 @@ gh run watch --repo Rio517/svg_sanitizer --exit-status
 gh release view vX.Y.Z --repo Rio517/svg_sanitizer --json assets --jq '.assets[].name'
 ```
 
-Expect one `libsvg_sanitizer_nif-vX.Y.Z-nif-<ver>-<triple>.so.tar.gz` per supported tuple. For v0.1.x that's exactly two:
+Expect one `libsvg_sanitizer_nif-vX.Y.Z-nif-<ver>-<triple>.so.tar.gz` per CI-built tuple. CI builds the two Linux targets:
 
 - `…-nif-2.17-aarch64-unknown-linux-gnu.so.tar.gz`
 - `…-nif-2.17-x86_64-unknown-linux-gnu.so.tar.gz`
 
-If a tuple is missing, the consumer's build for that platform will fail. Re-trigger the workflow or expand the matrix; don't publish to Hex until this is complete.
+If a Linux tuple is missing, the consumer's build for that platform will fail. Re-trigger the workflow; don't move on until both exist.
+
+### 3.5 Build + upload the macOS arm64 artifact (manual)
+
+CI does **not** build the Apple Silicon NIF — `rustler-precompiled-action@v1.1.5`
+unconditionally installs `cross`, which fails on macOS runners. So on an Apple
+Silicon Mac, build it locally and attach it to the Release by hand. (Intel Macs
+stay source-only; no `x86_64-apple-darwin` artifact is shipped.)
+
+```
+# 1. Release build from the tagged source (rustler 0.38 injects the macOS
+#    `-undefined dynamic_lookup` link flags; no .cargo/config.toml needed).
+cargo build --release --locked \
+  --manifest-path /Users/marioflores/code/svg_hush/native/svg_sanitizer_nif/Cargo.toml
+
+# 2. Rename the dylib to the rustler_precompiled distribution name (.so) and tar it.
+ART=libsvg_sanitizer_nif-vX.Y.Z-nif-2.17-aarch64-apple-darwin
+cp native/svg_sanitizer_nif/target/release/libsvg_sanitizer_nif.dylib "/tmp/$ART.so"
+tar -czf "/tmp/$ART.so.tar.gz" -C /tmp "$ART.so"
+
+# 3. Attach to the Release.
+gh release upload vX.Y.Z "/tmp/$ART.so.tar.gz" --repo Rio517/svg_sanitizer
+```
+
+The tarball must contain a single file named exactly `$ART.so` at the archive
+root, with the executable bit set — match the layout of the CI-built Linux
+tarballs (`tar -tzvf` one to confirm).
 
 ### 4. Generate the checksum file
 
