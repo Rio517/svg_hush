@@ -172,11 +172,17 @@ cd /Users/marioflores/code/svg_hush
 SVG_SANITIZER_BUILD=1 mix hex.publish --yes
 ```
 
-`SVG_SANITIZER_BUILD=1` is **required** on macOS — `RustlerPrecompiled`
-verifies the host has a matching precompiled artifact before building
-the tarball, and v0.1.x ships Linux-only artifacts. Without the env
-var you get `precompiled NIF is not available for this target:
-"aarch64-apple-darwin"` and the build aborts.
+`SVG_SANITIZER_BUILD=1` makes the publish-time compile build from
+source instead of downloading the precompiled NIF. As of v0.2.0,
+Apple Silicon (`aarch64-apple-darwin`) ships a precompiled artifact, so
+on an M-series Mac the flag is **optional** — `mix hex.publish` will
+download and verify the artifact without it. The flag is still
+**required** on any host with no matching precompiled artifact (Intel
+Macs, `x86_64-apple-darwin`); without it `RustlerPrecompiled` aborts
+with `precompiled NIF is not available for this target`. Either way the
+published Hex tarball is identical (source + checksum; the `.so` lives
+on the GitHub Release, not in the tarball), so keeping the flag is a
+harmless way to match the step-5 dry-run.
 
 `--yes` skips the y/n confirmation but does **not** skip the TOTP prompt. Enter the 6-digit code from your authenticator app.
 
